@@ -9,7 +9,7 @@
 #include <unistd.h>
 #include <syslog.h>
 #include <android/log.h>
-
+#include <string.h>
 #include <sys/select.h>
 #include <pthread.h>
 #include <signal.h>

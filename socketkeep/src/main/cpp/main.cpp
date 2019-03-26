@@ -70,7 +70,7 @@ static int BindLocalSocketToName(
         LOGE(" sun_path : %s",sunPath);
 
         // Bind socket
-        result =bind(sd, (struct sockaddr*) &address, addressLength);
+        result = bind(sd, (struct sockaddr*) &address, addressLength);
 
         if (-1 == result)
         {
@@ -227,7 +227,7 @@ void child_listen_msg() {
         FD_SET(m_child,&rfds);
         int r = select(m_child+1,&rfds,NULL,NULL,&timeout);
         LOGE("读取消息 %d",r);
-        if (r>0){
+        if ( r > 0 ){
             char pkg[512] = {0};
 //            保证所读取到的信息是 指定apk客户端
             if (FD_ISSET(m_child,&rfds)){
@@ -241,7 +241,6 @@ void child_listen_msg() {
             }
         }
     }
-
 }
 
 
@@ -273,7 +272,26 @@ void JNICALL Java_com_aly_roger_socketkeep_Watcher_createWatcher(JNIEnv * env,jo
 JNIEXPORT void JNICALL
 Java_com_aly_roger_socketkeep_Watcher_createMonitor(JNIEnv *env, jobject instance){
     int socked;
-    struct sockaddr_un addr;
+
+    struct sockaddr_un address;
+
+    // Name length
+    const size_t nameLength = strlen(PATH);
+
+    // Path length is initiall equal to name length
+    size_t pathLength = nameLength;
+
+    // If name is not starting with a slash it is
+    // in the abstract namespace
+    bool abstractNamespace = ('/' != PATH[0]);
+
+    // Abstract namespace requires having the first
+    // byte of the path to be the zero byte, update
+    // the path length to include the zero byte
+    if (abstractNamespace)
+    {
+        pathLength++;
+    }
 
     while (1){
         LOGE("客户端 服务启动啦");
@@ -284,18 +302,35 @@ Java_com_aly_roger_socketkeep_Watcher_createMonitor(JNIEnv *env, jobject instanc
             return;
         }
 
-        memset(&addr,0, sizeof(sockaddr_un));
-        addr.sun_family = AF_LOCAL;
-        strcpy(addr.sun_path,PATH);
+        memset(&address, 0, sizeof(address));
+        address.sun_family = PF_LOCAL;
 
-        if (connect(socked,(const struct sockaddr*)&addr, sizeof(sockaddr_un)) < 0){
+        // Socket path
+        char* sunPath = address.sun_path;
+
+        // First byte must be zero to use the abstract namespace
+        if (abstractNamespace)
+        {
+            *sunPath++ = NULL;
+        }
+
+
+        // Append the local name
+        strcpy(sunPath, PATH);
+
+        // Address length
+        socklen_t addressLength =
+                (offsetof(struct sockaddr_un, sun_path))
+                + pathLength;
+
+        if (connect(socked,(const struct sockaddr*)&address, addressLength) < 0){
             close(socked);
-            sleep(1);
+            sleep(3);
             LOGE("connect failed");
             continue;
 //            break;
         }
-        LOGE("链接成功");
+        LOGE("connect success");
 
         break;
 

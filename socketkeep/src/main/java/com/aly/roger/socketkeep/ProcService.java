@@ -26,7 +26,7 @@ public class ProcService extends Service {
 
     int i = 0;
 
-    Timer timer;
+
     @Override
     public void onCreate() {
         super.onCreate();
@@ -34,7 +34,7 @@ public class ProcService extends Service {
         watcher.createWatcher(String.valueOf(Process.myPid()));
         watcher.createMonitor();
 
-        timer = new Timer();
+        Timer timer = new Timer();
         timer.schedule(new TimerTask() {
             @Override
             public void run() {
@@ -46,6 +46,5 @@ public class ProcService extends Service {
     @Override
     public void onDestroy() {
         super.onDestroy();
-        timer.cancel();
     }
 }
